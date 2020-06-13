@@ -60,4 +60,7 @@
 /* mask for Bad FCF presence */
 #define BAD_FCS                         0x50    /* 0101 0000 */
 
+// MAX THREAD
+#define MAX_NUM_READER_THREADS  16
+
 #endif

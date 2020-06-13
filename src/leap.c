@@ -30,6 +30,8 @@
 
 // default snap length (maximum bytes per packet to capture)
 #define SNAP_LEN 1518
+// initial number of thread
+static uint8_t num_threads = 1;
 
 // error
 #define DEVICE_ERROR(device, file)                                             \
@@ -118,6 +120,10 @@ int main( int argc, char *argv[] )
             print_all_devices(all_devs, d);
             return EXIT_SUCCESS;
 
+        case 'n': // TODO
+            num_threads = atoi(optarg);
+            break;
+            
         case ':':
             fprintf( stderr, "Missing argument for option '%c'\n", optopt );
             print_usage();

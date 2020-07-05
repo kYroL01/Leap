@@ -27,8 +27,8 @@ LDFLAGS    = -lpcap
 
 # --------------- DEPENDENCIES ---------------
 
-# DEPS       = structures.h define.h tls_ssl.h functions.h ngcp.h rtcp.h rtsp.h globals.h
-SOURCES    = src/leap.c src/functions.c ## list of protocols
+# HEADERS  = include/structures.h include/define.h include/functions.h include/flow.h include/uthash.h
+SOURCES    = src/leap.c src/functions.c src/flow.h ## list of protocols
 OBJ        = $(SOURCES:.c = .o)
 #LIBSSL     = -I/usr/include/openssl -lcrypto
 LM         = -lm

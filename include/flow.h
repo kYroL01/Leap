@@ -1,7 +1,7 @@
 /**
    Leap - network protocols and much more
-   Copyright (C) 2020 Michele Campus <fci1908@gmail.com>
-   Copyright (C) 2020 Giusepe Longo  <giuseppe@glongo.it>
+   Copyright (C) 2020 Michele Campus <michelecampus5@gmail.com>
+   Copyright (C) 2020 Giuseppe Longo <giuseppe@glongo.it>
 
    Leap is free software: you can redistribute it and/or modify it under the
    terms of the GNU General Public License as published by the Free Software
@@ -37,8 +37,8 @@ union ip_dst
     struct ipv6_addr ipv6_dst;
 }
 
-/* Flow_key is the key used in the hashtable for a flow */
-struct Flow_key
+/* Flow_KEY is the key in the hashtable */
+struct Flow_KEY
 {
     union ip_src ip_src;
     union ip_dst ip_dst;
@@ -47,10 +47,10 @@ struct Flow_key
     u_int8_t proto_id_l3;
 };
 
-/** HASH TABLE **/
+/*** HASH TABLE ***/
 struct Hash_T
 {
-    struct Flow_key flow_key_hash; // Key
+    struct Flow_KEY flow_key_hash; // Key
     // TODO check which field we need to add
     UT_hash_handle hh;
 };
@@ -63,7 +63,7 @@ struct Hash_T
    @par key     : the key
    @par flow_in : the value
  **/
-static void add_flow(struct Flow_key *key, struct Hash_T *flow_in)
+static void add_flow(struct Flow_KEY *key)
 
 /**
    Find flow by key
@@ -72,13 +72,13 @@ static void add_flow(struct Flow_key *key, struct Hash_T *flow_in)
    @return elem : if elem exists in the hash table
    @return NULL : if elem is not present
 **/
-struct Hash_T *find_flow_by_key(struct Flow_key *key);
+struct Hash_T *find_flow_by_key(struct Flow_KEY *key);
 
 /**
    Delete flow by key
    @par key
 **/
-void delete_flow_by_key(struct Flow_key *key);
+void delete_flow_by_key(struct Flow_KEY *key);
 
 /**
    Delete all flows

@@ -1,7 +1,7 @@
 /**
    Leap - network protocols and much more
-   Copyright (C) 2020 Michele Campus <fci1908@gmail.com>
-   Copyright (C) 2020 Giusepe Longo  <giuseppe@glongo.it>
+   Copyright (C) 2020 Michele Campus <michelecampus5@gmail.com>
+   Copyright (C) 2020 Giuseppe Longo <giuseppe@glongo.it>
 
    Leap is free software: you can redistribute it and/or modify it under the
    terms of the GNU General Public License as published by the Free Software

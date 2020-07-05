@@ -2,8 +2,8 @@
    All the structures
 
    Leap - network protocols and much more
-   Copyright (C) 2020 Michele Campus <fci1908@gmail.com>
-   Copyright (C) 2020 Giusepe Longo  <giuseppe@glongo.it>
+   Copyright (C) 2020 Michele Campus <michelecampus5@gmail.com>
+   Copyright (C) 2020 Giuseppe Longo <giuseppe@glongo.it>
 
    Leap is free software: you can redistribute it and/or modify it under the
    terms of the GNU General Public License as published by the Free Software
@@ -27,13 +27,16 @@
 #include <endian.h>
 #include <net/ethernet.h>
 #include "define.h"
-// #include "uthash.h"
 
 #ifdef __GNUC__
 /* GNU C */
 #define PACK_OFF __attribute__ ((__packed__));
 #endif
 
+
+/**
+ ** PROTOCOL DETECTION **
+**/
 
 /* ++++++++++++++++++++++++ CISCO HDLC +++++++++++++++++++++++++ */
 struct chdlc_hdr
@@ -86,7 +89,7 @@ struct mpls_header
     #elif (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
     u_int32_t label:20, exp:3, s:1, ttl:8;
     #endif
-} __attribute__((packed));
+} PACK_OFF;
 
 
 
@@ -145,12 +148,7 @@ struct ipv4_hdr
 /* +++++++++++++++++++++++ IPv6 header +++++++++++++++++++++++ */
 struct ipv6_addr
 {
-    /* union */
-    /* { */
-    u_int8_t   ipv6_addr[16];
-    /* u_int16_t  ipv6_addr16[8]; */
-    /* u_int32_t  ipv6_addr32[4]; */
-    /* } ipv6_addr;  /\* 128-bit IPV6 address *\/ */
+    u_int8_t   ipv6_addr[16]; /* 128-bit IPV6 address */
 };
 
 
@@ -166,7 +164,7 @@ struct ipv6_hdr
 
         u_int8_t ipv6_un2_vfc;        /* 4 bits version, top 4 bits tclass */
     } ipv6_ctlun;
-
+    
     struct ipv6_addr ipv6_src;	  /* source address */
     struct ipv6_addr ipv6_dst;	  /* destination address */
 } PACK_OFF;
@@ -211,38 +209,36 @@ struct udp_hdr
     u_int16_t check;
 } PACK_OFF;
 
-/* general stats filled by every pkts  */
-struct flow_stats
-{
-    u_int16_t discarded_bytes;
-    u_int16_t ethernet_pkts;
-    u_int16_t wifi_pkts;
-    u_int16_t arp_pkts;
-    u_int16_t ipv4_pkts;
-    u_int16_t ipv6_pkts;
-    u_int16_t vlan_pkts;
-    u_int16_t mpls_pkts;
-    u_int16_t pppoe_pkts;
-    u_int16_t tcp_pkts;
-    u_int16_t udp_pkts;
-    u_int16_t num_tls_pkts;      // count tls pkts
-    u_int16_t num_rtcp_pkts;     // count rtcp pkts
-    u_int16_t num_rtcpxr_pkts;   // count rtcpxr pkts
-    u_int16_t num_diameter_pkts; // count diameter pkts
-    u_int16_t num_ngcp_pkts;     // count ngcp pkts
-    u_int16_t num_rtsp_pkts;     // count rtsp pkts
-    u_int16_t num_msrp_pkts;     // count msrp pkts
-};
 
 
 /**
-   Struct passed to the callback proto function
-   for the detection process 
-**/
+ ** STATS AND DATA FLOW STRUCTURES **
+ **/
+
+/* General statistics */
+struct stats_t
+{
+    uint16_t tcp_flows;
+    uint16_t udp_flows;    
+    uint16_t discarded_bytes;
+    uint16_t ethernet_pkts;
+    uint16_t wifi_pkts;
+    uint16_t arp_pkts;
+    uint16_t ipv4_pkts;
+    uint16_t ipv6_pkts;
+    uint16_t vlan_pkts;
+    uint16_t mpls_pkts;
+    uint16_t pppoe_pkts;
+    uint16_t tcp_pkts;
+    uint16_t udp_pkts;
+};
+
+
+/* Struct passed to the callback proto function */
 struct flow_callback_proto
 {
     pcap_t *p_handle;
-    struct flow_stats stats;
+    struct stats_t stats;
 };
 
 

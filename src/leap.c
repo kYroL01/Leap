@@ -1,9 +1,9 @@
 /**
-   Main module of decoder
+   Main module of Leap
 
    Leap - network protocols and much more
-   Copyright (C) 2020 Michele Campus <fci1908@gmail.com>
-   Copyright (C) 2020 Giusepe Longo  <giuseppe@glongo.it>
+   Copyright (C) 2020 Michele Campus <michelecampus5@gmail.com>
+   Copyright (C) 2020 Giuseppe Longo <giuseppe@glongo.it>
 
    Leap is free software: you can redistribute it and/or modify it under the
    terms of the GNU General Public License as published by the Free Software
@@ -119,12 +119,12 @@ int main( int argc, char *argv[] )
             return EXIT_SUCCESS;
 
         case ':':
-            fprintf( stderr, "Missing argument for option '%c'\n", optopt );
+            fprintf(stderr, "Missing argument for option '%c'\n", optopt);
             print_usage();
             return EXIT_FAILURE;
 
         default:
-            fprintf( stderr, "Unknown option '%c'\n", optopt );
+            fprintf(stderr, "Unknown option '%c'\n", optopt);
             print_usage();
             return EXIT_FAILURE;
         }
@@ -160,6 +160,7 @@ int main( int argc, char *argv[] )
             perror("ERROR: Cannot restore process's signal mask, ");
             return EXIT_FAILURE;
         }
+
         /* #### SIGNAL MASK (end) #### */
 
         printf("Sniffing on device %s\n", device);
@@ -191,13 +192,17 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
     }
   
-    /* init structures for FLOW */
+    /* init structures for data flow */
     fcp = flow_callback_proto_init(p_handle);
+    if(fcp == NULL) {
+        fprintf(stderr, "Error on memory allocation for data flow\n");
+        return EXIT_FAILURE;
+    }
 
     /* loop for packets */
     pcap_loop(fcp->p_handle, -1, callback_proto, (u_char*) fcp);
 
-    printf("\n\n<<< DETECTION FINISHED >>>\n\n");
+    printf("\n\n--- DETECTION FINISHED ---\n\n");
 
     /* print statistics of flows */
     print_stats(fcp);
@@ -205,5 +210,5 @@ int main( int argc, char *argv[] )
     /* terminate the handle pcap function */
     pcap_close(fcp->p_handle);
 
-    return 0;
+    return EXIT_SUCCESS;
 }

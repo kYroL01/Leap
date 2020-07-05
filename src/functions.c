@@ -2,8 +2,8 @@
    Implementation of main functions
 
    Leap - network protocols and much more
-   Copyright (C) 2020 Michele Campus <fci1908@gmail.com>
-   Copyright (C) 2020 Giusepe Longo  <giuseppe@glongo.it>
+   Copyright (C) 2020 Michele Campus <michelecampus5@gmail.com>
+   Copyright (C) 2020 Giuseppe Longo <giuseppe@glongo.it>
 
    Leap is free software: you can redistribute it and/or modify it under the
    terms of the GNU General Public License as published by the Free Software
@@ -29,15 +29,19 @@
 #include <signal.h>
 #include "../include/functions.h"
 #include "../include/structures.h"
-// #include "uthash.h"
+#include "../include/uthash.h"
+#include "../include/flow.h"
+
+
+/* Definition of Hash Table */
+struct Hash_T *HT_Flows = NULL;
+
 
 /* get the pcap error occurred */
 extern inline void pcap_fatal(const char *, ...);
 
+
 /**
-   #param uint16_t
-   #param int
-   #param int
    @return n bit from position p of number x
 **/
 static inline uint8_t getBits(uint16_t x, int p, int n)
@@ -45,24 +49,34 @@ static inline uint8_t getBits(uint16_t x, int p, int n)
     return (x >> (p+1-n)) & ~(~0 << n);
 }
 
+
 /**
-   Init data flow struct
+   Init handle data flow for the callback
+   @par p_handle      : the handle of data (pcap or live)
+   @return flow_data  : the pointer to data flow
 **/
 struct flow_callback_proto *flow_callback_proto_init(pcap_t * p_handle)
 {
-    struct flow_callback_proto *flow = malloc(sizeof(struct flow_callback_proto));
-    memset(flow, 0, sizeof(struct flow_callback_proto));
-    if(!flow) perror("flow malloc failed\n");
+    if(p_handle == NULL)
+        exit(EXIT_FAILURE);
+    
+    struct flow_callback_proto *flow_data = malloc(sizeof(struct flow_callback_proto));
+    memset(flow_data, 0, sizeof(struct flow_callback_proto));
+    if(flow_data = NULL) {
+        perror("flow malloc failed\n");
+        return NULL;
+    }
+    
+    flow_data->p_handle = p_handle;
 
-    flow->p_handle = p_handle;
-
-    return flow;
+    return flow_data;
 }
+
 
 /**
    Print IPv4 address 
 **/
-void print_ipv4(u_int32_t addr)
+void print_ipv4(uint32_t addr)
 {
     unsigned char bytes[4];
     bytes[0] = addr & 0xFF;
@@ -72,10 +86,11 @@ void print_ipv4(u_int32_t addr)
     printf("%d.%d.%d.%d\n", bytes[0], bytes[1], bytes[2], bytes[3]);
 }
 
+
 /**
    Print IPv6 address 
 **/
-void print_ipv6(const struct ipv6_addr * addr) {
+void print_ipv6(const struct ipv6_addr *addr) {
 
     printf("%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
            (int)addr->ipv6_addr[0], (int)addr->ipv6_addr[1],
@@ -89,21 +104,101 @@ void print_ipv6(const struct ipv6_addr * addr) {
 }
 
 
+/* Function to create the Flow Key from passed arguments */
+static void create_Flow_KEY(struct Flow_key *flow_key,
+                            const uint8_t ip_version,
+                            const struct ipv4_hdr *iphv4,
+                            const struct ipv6_hdr *iphv6,
+                            const uint16_t src_port,
+                            const uint16_t dst_port,
+                            const uint8_t proto_id_l3)
+{
+    // IPv4
+    if(ip_version == IPv4) {
+        flow_key->ip_src = iphv4->ip_src_addr; // SRC address
+        flow_key->ip_dst = iphv4->ip_dst_addr; // DST address
+    }
+    // IPv6
+    else {
+        // SRC address
+        flow_key->ipv6_src.ipv6_addr[0] = iphv6->ipv6_src.ipv6_addr[0];
+        flow_key->ipv6_src.ipv6_addr[1] = iphv6->ipv6_src.ipv6_addr[1];
+        flow_key->ipv6_src.ipv6_addr[2] = iphv6->ipv6_src.ipv6_addr[2];
+        flow_key->ipv6_src.ipv6_addr[3] = iphv6->ipv6_src.ipv6_addr[3];
+        flow_key->ipv6_src.ipv6_addr[4] = iphv6->ipv6_src.ipv6_addr[4];
+        flow_key->ipv6_src.ipv6_addr[5] = iphv6->ipv6_src.ipv6_addr[5];
+        flow_key->ipv6_src.ipv6_addr[6] = iphv6->ipv6_src.ipv6_addr[6];
+        flow_key->ipv6_src.ipv6_addr[7] = iphv6->ipv6_src.ipv6_addr[7];
+        flow_key->ipv6_src.ipv6_addr[8] = iphv6->ipv6_src.ipv6_addr[8];
+        flow_key->ipv6_src.ipv6_addr[9] = iphv6->ipv6_src.ipv6_addr[9];
+        flow_key->ipv6_src.ipv6_addr[10] = iphv6->ipv6_src.ipv6_addr[10];
+        flow_key->ipv6_src.ipv6_addr[11] = iphv6->ipv6_src.ipv6_addr[11];
+        flow_key->ipv6_src.ipv6_addr[12] = iphv6->ipv6_src.ipv6_addr[12];
+        flow_key->ipv6_src.ipv6_addr[13] = iphv6->ipv6_src.ipv6_addr[13];
+        flow_key->ipv6_src.ipv6_addr[14] = iphv6->ipv6_src.ipv6_addr[14];
+        flow_key->ipv6_src.ipv6_addr[15] = iphv6->ipv6_src.ipv6_addr[15];
+        // DST address
+        flow_key->ipv6_dst.ipv6_addr[0] = iphv6->ipv6_dst.ipv6_addr[0];
+        flow_key->ipv6_dst.ipv6_addr[1] = iphv6->ipv6_dst.ipv6_addr[1];
+        flow_key->ipv6_dst.ipv6_addr[2] = iphv6->ipv6_dst.ipv6_addr[2];
+        flow_key->ipv6_dst.ipv6_addr[3] = iphv6->ipv6_dst.ipv6_addr[3];
+        flow_key->ipv6_dst.ipv6_addr[4] = iphv6->ipv6_dst.ipv6_addr[4];
+        flow_key->ipv6_dst.ipv6_addr[5] = iphv6->ipv6_dst.ipv6_addr[5];
+        flow_key->ipv6_dst.ipv6_addr[6] = iphv6->ipv6_dst.ipv6_addr[6];
+        flow_key->ipv6_dst.ipv6_addr[7] = iphv6->ipv6_dst.ipv6_addr[7];
+        flow_key->ipv6_dst.ipv6_addr[8] = iphv6->ipv6_dst.ipv6_addr[8];
+        flow_key->ipv6_dst.ipv6_addr[9] = iphv6->ipv6_dst.ipv6_addr[9];
+        flow_key->ipv6_dst.ipv6_addr[10] = iphv6->ipv6_dst.ipv6_addr[10];
+        flow_key->ipv6_dst.ipv6_addr[11] = iphv6->ipv6_dst.ipv6_addr[11];
+        flow_key->ipv6_dst.ipv6_addr[12] = iphv6->ipv6_dst.ipv6_addr[12];
+        flow_key->ipv6_dst.ipv6_addr[13] = iphv6->ipv6_dst.ipv6_addr[13];
+        flow_key->ipv6_dst.ipv6_addr[14] = iphv6->ipv6_dst.ipv6_addr[14];
+        flow_key->ipv6_dst.ipv6_addr[15] = iphv6->ipv6_dst.ipv6_addr[15];
+    }
+
+    // SRC port
+    flow_key->src_port = src_port;
+    // DST port
+    flow_key->dst_port = dst_port;
+
+    // PROTO ID L3 (L4)
+    flow_key->proto_id_l3 = proto_id_l3;
+}
+
 
 /**
    Function to process a packet
 **/
-static unsigned int process_packet(const u_char * payload,
-                                   const u_int16_t size_payload,
-                                   const u_int8_t ip_version,
-                                   const struct ipv4_hdr * iphv4,
-                                   const struct ipv6_hdr * iphv6,
-                                   const u_int16_t src_port,
-                                   const u_int16_t dst_port,
-                                   const u_int8_t proto_id_l3,
-                                   struct flow_callback_proto * fcp)                                  
+static unsigned int process_packet(const uchar * payload,
+                                   const uint16_t size_payload,
+                                   const uint8_t ip_version,
+                                   const struct ipv4_hdr *iphv4,
+                                   const struct ipv6_hdr *iphv6,
+                                   const uint16_t src_port,
+                                   const uint16_t dst_port,
+                                   const uint8_t proto_id_l3,
+                                   struct flow_callback_proto *fcp)
 {
     int ret = 0;
+    
+    /**
+     *
+     * ### KEY ###
+     * NOTE: every time a pkt is processed, a new Key is created.
+     * The Key is used to check if the pkt belong to an existing flow
+     * or we must create a new one.
+     * 
+     */
+    struct Flow_key *flow_key = NULL;
+    flow_key = malloc(sizeof(struct Flow_key));
+    if(flow_key == NULL) {
+        fprintf(stderr, "No memory allocated for flow Key\n");
+        exit(EXIT_FAILURE);
+    }
+    memset(flow_key, 0, sizeof(struct Flow_key));
+
+    /* create the flow key */
+    create_Flow_KEY(flow_key, ip_version, iphv4, iph46, src_port, dst_port, proto_id_l3);
 
     /**
        #################
@@ -111,8 +206,13 @@ static unsigned int process_packet(const u_char * payload,
        ################# 
     **/
     if(proto_id_l3 == IPPROTO_UDP) {
-
+        
         // TODO UDP protocols callback here
+        
+        /* The flow must be added or created inside the protocol dissector
+           now we're just trying... */
+        // TODO ADD_FLOW
+        
     }
     
     /**
@@ -123,6 +223,11 @@ static unsigned int process_packet(const u_char * payload,
     else if(proto_id_l3 == IPPROTO_TCP){
 
         // TODO TCP protocols callback here
+
+        /* The flow must be added or created inside the protocol dissector
+           now we're just trying... */
+        // TODO ADD_FLOW
+
     } 
     
     return ret;
@@ -135,7 +240,7 @@ void callback_proto(u_char *args, const struct pcap_pkthdr *pkt_header, const u_
 
 
     // define flow based on thread_id on call_thread array
-    struct flow_callback_proto * fcp = (struct flow_callback_proto*) args;
+    struct flow_callback_proto *fcp = (struct flow_callback_proto*) args;
 
     // define ethernet header
     const struct ether_hdr *ethernet_header = NULL;
@@ -164,11 +269,11 @@ void callback_proto(u_char *args, const struct pcap_pkthdr *pkt_header, const u_
     const u_char *payload = NULL;
 
     /* lengths and offsets */
-    u_int16_t check, type = 0, pyld_eth_len = 0;
-    u_int16_t wifi_len = 0, radiotap_len = 0; /* fc; */
-    u_int16_t link_offset = 0, ipv4_offset = 0, ipv6_offset = 0;
-    u_int16_t tcp_offset = 0, udp_offset = 0;
-    u_int16_t size_payload = 0;
+    uint16_t check, type = 0, pyld_eth_len = 0;
+    uint16_t wifi_len = 0, radiotap_len = 0; /* fc; */
+    uint16_t link_offset = 0, ipv4_offset = 0, ipv6_offset = 0;
+    uint16_t tcp_offset = 0, udp_offset = 0;
+    uint16_t size_payload = 0;
 
     // check if a SIGINT is arrived
     if(signal_flag){
@@ -218,7 +323,7 @@ void callback_proto(u_char *args, const struct pcap_pkthdr *pkt_header, const u_
     case DLT_IEEE802_11_RADIO:
         radiotap_header = (struct radiotap_hdr *) packet;
         radiotap_len = radiotap_header->len;
-        u_int8_t flags;
+        uint8_t flags;
         // Check for FLAG fields
         flags = getBits(radiotap_header->present, 1, 1);
         printf("Flags = %d\n", flags);
@@ -257,7 +362,7 @@ void callback_proto(u_char *args, const struct pcap_pkthdr *pkt_header, const u_
         perror("unsupported interface type\n");
     }
 
-    u_int16_t ipv4_type = 0, ipv6_type = 0;
+    uint16_t ipv4_type = 0, ipv6_type = 0;
     
     /** CHECK ETHER TYPE **/
     switch(type)
@@ -319,15 +424,15 @@ void callback_proto(u_char *args, const struct pcap_pkthdr *pkt_header, const u_
     /**
        Check Network layer
     **/
-    u_int8_t ip_version;
-    u_int8_t ip_proto;
+    uint8_t ip_version;
+    uint8_t ip_proto;
 
     // IPv4
     if(ipv4_type == 1) {
         // decode IP layer
         ip_version = IPv4; // pass to dissector
         ipv4_header = (const struct ipv4_hdr*)(packet + link_offset);
-        ipv4_offset = ((u_int16_t)ipv4_header->ihl * 4);
+        ipv4_offset = ((uint16_t)ipv4_header->ihl * 4);
         if(ipv4_offset < 20) {
             fprintf(stderr, "Invalid IPv4 header length: %u bytes\n", ipv4_offset);
             return;
@@ -357,7 +462,7 @@ void callback_proto(u_char *args, const struct pcap_pkthdr *pkt_header, const u_
     }
 
     // set ip_offset
-    u_int16_t ip_offset = (ipv4_type == 0) ? ipv6_offset : ipv4_offset;
+    uint16_t ip_offset = (ipv4_type == 0) ? ipv6_offset : ipv4_offset;
 
     /* ----------------------------------------------------------- */
 
@@ -390,8 +495,8 @@ void callback_proto(u_char *args, const struct pcap_pkthdr *pkt_header, const u_
         return;
     }
 
-    // set l4 offset
-    u_int16_t l4_offset = (ip_proto == IPPROTO_TCP) ? tcp_offset : udp_offset;
+    // set L4 offset
+    uint16_t l4_offset = (ip_proto == IPPROTO_TCP) ? tcp_offset : udp_offset;
 
     /* ----------------------------------------------------------- */
     

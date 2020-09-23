@@ -31,7 +31,7 @@
 // default snap length (maximum bytes per packet to capture)
 #define SNAP_LEN 1518
 // initial number of thread
-static uint8_t num_threads = 1;
+static u_int8_t num_threads = 1;
 
 // error
 #define DEVICE_ERROR(device, file)                                             \

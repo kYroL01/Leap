@@ -35,7 +35,7 @@ union ip_dst
     u_int32_t ip_dst;
     // IPv6
     struct ipv6_addr ipv6_dst;
-}
+};
 
 /* Flow_KEY is the key in the hashtable */
 struct Flow_KEY
@@ -68,7 +68,7 @@ static void add_flow(struct Flow_KEY *key)
 /**
    Find flow by key
    @par key
-   
+
    @return elem : if elem exists in the hash table
    @return NULL : if elem is not present
 **/
